@@ -1,0 +1,68 @@
+﻿@page
+@model IndexModel
+
+@{
+  ViewData["Title"] = "Mix Archive";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1>Mix Archive</h1>
+    <p class="text-muted mb-0">
+      @Model.TotalMixes mix@(Model.TotalMixes == 1 ? "" : "es")
+    </p>
+  </div>
+</div>
+
+<form method="get" class="mb-4">
+  <div class="input-group">
+    <input type="search" class="form-control" name="Search" value="@Model.Search" placeholder="Search mixes..."
+           aria-label="Search mixes" />
+
+    <button class="btn btn-primary" type="submit">
+      Search
+    </button>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Search))
+    {
+      <a asp-page="/Index" class="btn btn-outline-secondary">
+        Clear
+      </a>
+    }
+  </div>
+</form>
+
+@if (Model.Mixes.Count == 0)
+{
+  <div class="alert alert-info">
+    @if (string.IsNullOrWhiteSpace(Model.Search))
+    {
+      <span>No mixes have been imported yet.</span>
+    }
+    else
+    {
+      <span>No mixes matched your search.</span>
+    }
+  </div>
+}
+else
+{
+  <div class="list-group">
+    @foreach (var mix in Model.Mixes)
+    {
+      <a asp-page="/Mix/Details" asp-route-id="@mix.Id" class="list-group-item list-group-item-action">
+
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1">@mix.Title</h5>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(mix.Description))
+        {
+          <p class="mb-1 text-muted">
+            @mix.Description
+          </p>
+        }
+      </a>
+    }
+  </div>
+}

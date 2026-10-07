@@ -1,0 +1,33 @@
+@page "{id:int}"
+@model MixArchive.Pages.Mix.DetailsModel
+
+@{
+    ViewData["Title"] = Model.Mix?.Title ?? "Mix";
+}
+
+@if (Model.Mix != null)
+{
+    <div class="mb-4">
+        <a asp-page="/Index" class="text-decoration-none">
+            ← Back to library
+        </a>
+    </div>
+
+    <h1>@Model.Mix.Title</h1>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Mix.Description))
+    {
+        <p class="text-muted">
+            @Model.Mix.Description
+        </p>
+    }
+
+    <div class="mt-4">
+        <audio controls preload="metadata" style="width: 100%;">
+            <source src="?handler=Audio&id=@Model.Mix.Id"
+                    type="audio/mpeg">
+
+            Your browser does not support audio playback.
+        </audio>
+    </div>
+}
