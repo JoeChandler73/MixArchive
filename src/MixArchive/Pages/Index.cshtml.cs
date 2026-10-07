@@ -16,7 +16,12 @@ public sealed class IndexModel(MixArchiveDbContext db) : PageModel
 
     public async Task OnGetAsync()
     {
-        var query = db.Mixes.AsNoTracking().OrderBy(m => m.Title).AsQueryable();
+        var query = db
+            .Mixes.AsNoTracking()
+            .Include(m => m.MixTags)
+                .ThenInclude(mt => mt.Tag)
+            .OrderBy(m => m.Title)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(Search))
         {
@@ -25,6 +30,7 @@ public sealed class IndexModel(MixArchiveDbContext db) : PageModel
             query = query.Where(m =>
                 EF.Functions.Like(m.Title, $"%{search}%")
                 || EF.Functions.Like(m.Description, $"%{search}%")
+                || m.MixTags.Any(mt => EF.Functions.Like(mt.Tag.Name, $"%{search}%"))
             );
         }
 
