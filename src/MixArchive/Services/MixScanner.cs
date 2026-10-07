@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MixArchive.Data;
 using MixArchive.Models;
 
@@ -7,13 +8,16 @@ namespace MixArchive.Services;
 
 public class MixScanner(
     MixArchiveDbContext db,
-    IConfiguration configuration,
+    IOptions<MusicOptions> options,
     ILogger<MixScanner> logger
 )
 {
     public async Task<ScanResult> ScanAsync()
     {
-        var rootPath = configuration["Music:RootPath"];
+        if (options.Value == null)
+            throw new InvalidOperationException("Music:RootPath is not configured.");
+
+        var rootPath = options.Value.RootPath;
 
         if (string.IsNullOrWhiteSpace(rootPath))
             throw new InvalidOperationException("Music:RootPath is not configured.");

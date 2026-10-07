@@ -1,8 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using MixArchive.Data;
+using MixArchive.Models;
 using MixArchive.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<MusicOptions>(
+    builder.Configuration.GetSection(MusicOptions.SectionName)
+);
 
 builder.Services.AddDbContext<MixArchiveDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))

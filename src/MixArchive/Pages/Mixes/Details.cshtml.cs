@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MixArchive.Data;
+using MixArchive.Models;
 
-namespace MixArchive.Pages.Mix;
+namespace MixArchive.Pages.Mixes;
 
-public class DetailsModel(MixArchiveDbContext db, IConfiguration configuration) : PageModel
+public class DetailsModel(MixArchiveDbContext db, IOptions<MusicOptions> options) : PageModel
 {
-    public Models.Mix? Mix { get; private set; }
+    public Mix? Mix { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -24,6 +26,15 @@ public class DetailsModel(MixArchiveDbContext db, IConfiguration configuration) 
 
     public async Task<IActionResult> OnGetAudioAsync(int id)
     {
+        if (options.Value == null)
+            throw new InvalidOperationException("Music:RootPath is not configured.");
+
+        var rootPath = options.Value.RootPath;
+        if (string.IsNullOrWhiteSpace(rootPath))
+        {
+            throw new InvalidOperationException("Music:RootPath is not configured.");
+        }
+
         var mix = await db
             .Mixes.AsNoTracking()
             .Include(m => m.File)
@@ -31,13 +42,6 @@ public class DetailsModel(MixArchiveDbContext db, IConfiguration configuration) 
 
         if (mix?.File == null)
             return NotFound();
-
-        var rootPath = configuration["Music:RootPath"];
-
-        if (string.IsNullOrWhiteSpace(rootPath))
-        {
-            throw new InvalidOperationException("Music:RootPath is not configured.");
-        }
 
         var filePath = Path.Combine(rootPath, mix.File.FileName);
 
