@@ -4,10 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MixArchive.Data;
 using MixArchive.Models;
+using MixArchive.Services;
 
 namespace MixArchive.Pages.Mixes;
 
-public class DetailsModel(MixArchiveDbContext db, IOptions<MusicOptions> options) : PageModel
+public class DetailsModel(MixArchiveDbContext db, MixFileService fileService) : PageModel
 {
     public Mix? Mix { get; private set; }
 
@@ -26,15 +27,6 @@ public class DetailsModel(MixArchiveDbContext db, IOptions<MusicOptions> options
 
     public async Task<IActionResult> OnGetAudioAsync(int id)
     {
-        if (options.Value == null)
-            throw new InvalidOperationException("Music:RootPath is not configured.");
-
-        var rootPath = options.Value.RootPath;
-        if (string.IsNullOrWhiteSpace(rootPath))
-        {
-            throw new InvalidOperationException("Music:RootPath is not configured.");
-        }
-
         var mix = await db
             .Mixes.AsNoTracking()
             .Include(m => m.File)
@@ -43,12 +35,10 @@ public class DetailsModel(MixArchiveDbContext db, IOptions<MusicOptions> options
         if (mix?.File == null)
             return NotFound();
 
-        var filePath = Path.Combine(rootPath, mix.File.FileName);
-
-        if (!System.IO.File.Exists(filePath))
+        if (!fileService.Exists(mix.File.FileName))
             return NotFound();
 
-        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var stream = fileService.OpenRead(mix.File.FileName);
 
         return new FileStreamResult(stream, "audio/mpeg") { EnableRangeProcessing = true };
     }

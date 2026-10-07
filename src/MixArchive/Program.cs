@@ -13,6 +13,7 @@ builder.Services.AddDbContext<MixArchiveDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
+builder.Services.AddScoped<MixFileService>();
 builder.Services.AddScoped<MixScanner>();
 
 // Add services to the container.

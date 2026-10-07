@@ -14,13 +14,10 @@ public class MixScanner(
 {
     public async Task<ScanResult> ScanAsync()
     {
-        if (options.Value == null)
+        if (options.Value == null || string.IsNullOrWhiteSpace(options.Value.RootPath))
             throw new InvalidOperationException("Music:RootPath is not configured.");
 
         var rootPath = options.Value.RootPath;
-
-        if (string.IsNullOrWhiteSpace(rootPath))
-            throw new InvalidOperationException("Music:RootPath is not configured.");
 
         if (!Directory.Exists(rootPath))
             throw new DirectoryNotFoundException($"Music directory does not exist: {rootPath}");
