@@ -1,0 +1,77 @@
+@page "{id:int}"
+@model MixArchive.Pages.Mixes.EditModel
+
+@{
+    ViewData["Title"] = "Edit Mix";
+}
+
+<div class="mb-4">
+    <a asp-page="/Mixes/Details"
+       asp-route-id="@Model.Id"
+       class="text-decoration-none">
+        ← Back to mix
+    </a>
+</div>
+
+<h1>Edit Mix</h1>
+
+<form method="post">
+
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label">
+            Title
+        </label>
+
+        <input asp-for="Title"
+               class="form-control"
+               autofocus />
+
+        <span asp-validation-for="Title"
+              class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label">
+            Description
+        </label>
+
+        <textarea asp-for="Description"
+                  class="form-control"
+                  rows="5"></textarea>
+    </div>
+
+    <div class="mb-4">
+        <label asp-for="Tags" class="form-label">
+            Tags
+        </label>
+
+        <input asp-for="Tags"
+               class="form-control"
+               placeholder="jungle, dnb, 1990s..." />
+
+        <div class="form-text">
+            Separate tags with commas.
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit"
+                class="btn btn-primary">
+            Save Changes
+        </button>
+
+        <a asp-page="/Mixes/Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </div>
+
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
