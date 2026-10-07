@@ -13,4 +13,6 @@ public sealed class Mix
     public DateTime ModifiedAt { get; set; }
 
     public MixFile? File { get; set; }
+
+    public ICollection<MixTag> MixTags { get; set; } = [];
 }

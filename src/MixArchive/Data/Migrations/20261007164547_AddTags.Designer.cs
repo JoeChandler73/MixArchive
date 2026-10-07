@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MixArchive.Data;
 
@@ -10,9 +11,11 @@ using MixArchive.Data;
 namespace MixArchive.Data.Migrations
 {
     [DbContext(typeof(MixArchiveDbContext))]
-    partial class MixArchiveDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007164547_AddTags")]
+    partial class AddTags
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
