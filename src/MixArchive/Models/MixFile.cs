@@ -15,4 +15,6 @@ public sealed class MixFile
     public string FileHash { get; set; } = string.Empty;
 
     public DateTime LastScanned { get; set; }
+
+    public DateTime? LastSeen { get; set; }
 }

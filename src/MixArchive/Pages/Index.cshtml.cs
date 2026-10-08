@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using MixArchive.Data;
+using MixArchive.Services;
 
 namespace MixArchive.Pages;
 
-public sealed class IndexModel(MixArchiveDbContext db) : PageModel
+public sealed class IndexModel(MixArchiveDbContext db, MixScanner scanner) : PageModel
 {
     public IList<Models.Mix> Mixes { get; private set; } = [];
 
@@ -13,6 +14,9 @@ public sealed class IndexModel(MixArchiveDbContext db) : PageModel
 
     [BindProperty(SupportsGet = true)]
     public string? Search { get; set; }
+
+    [BindProperty]
+    public ScanResult? LastScan { get; set; }
 
     public async Task OnGetAsync()
     {
@@ -36,5 +40,14 @@ public sealed class IndexModel(MixArchiveDbContext db) : PageModel
 
         Mixes = await query.ToListAsync();
         TotalMixes = await db.Mixes.CountAsync();
+    }
+
+    public async Task<IActionResult> OnPostResyncAsync()
+    {
+        LastScan = await scanner.ScanAsync();
+
+        await OnGetAsync();
+
+        return Page();
     }
 }

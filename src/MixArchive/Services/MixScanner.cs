@@ -6,55 +6,99 @@ using MixArchive.Models;
 
 namespace MixArchive.Services;
 
-public class MixScanner(
-    MixArchiveDbContext db,
-    IOptions<MusicOptions> options,
-    ILogger<MixScanner> logger
-)
+public class MixScanner(MixArchiveDbContext db, IOptions<MusicOptions> options)
 {
     public async Task<ScanResult> ScanAsync()
     {
-        if (options.Value == null || string.IsNullOrWhiteSpace(options.Value.RootPath))
+        if (options.Value is null || string.IsNullOrWhiteSpace(options.Value.RootPath))
+        {
             throw new InvalidOperationException("Music:RootPath is not configured.");
+        }
 
         var rootPath = options.Value.RootPath;
 
         if (!Directory.Exists(rootPath))
-            throw new DirectoryNotFoundException($"Music directory does not exist: {rootPath}");
+        {
+            throw new DirectoryNotFoundException(rootPath);
+        }
+
+        var now = DateTime.UtcNow;
 
         var result = new ScanResult();
-        var files = Directory.EnumerateFiles(rootPath, "*.mp3", SearchOption.TopDirectoryOnly);
 
-        foreach (var filePath in files)
+        var filesOnDisk = Directory
+            .EnumerateFiles(rootPath, "*.mp3", SearchOption.TopDirectoryOnly)
+            .ToList();
+
+        result.FilesFound = filesOnDisk.Count;
+
+        var existingFiles = await db.MixFiles.Include(f => f.Mix).ToListAsync();
+
+        var byFileName = existingFiles.ToDictionary(
+            f => f.FileName,
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        var byHash = existingFiles
+            .Where(f => !string.IsNullOrWhiteSpace(f.FileHash))
+            .GroupBy(f => f.FileHash)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var seenFiles = new HashSet<int>();
+
+        foreach (var filePath in filesOnDisk)
         {
-            result.FilesFound++;
-
             var fileName = Path.GetFileName(filePath);
 
-            var existingFile = await db.MixFiles.FirstOrDefaultAsync(f => f.FileName == fileName);
-            if (existingFile != null)
+            if (byFileName.TryGetValue(fileName, out var existingFile))
             {
+                existingFile.LastScanned = now;
+                existingFile.LastSeen = now;
+
+                seenFiles.Add(existingFile.Id);
+
                 result.AlreadyKnown++;
+
                 continue;
             }
 
-            var mix = CreateMix(filePath);
+            var hash = await CalculateHashAsync(filePath);
+
+            if (byHash.TryGetValue(hash, out var renamedFile))
+            {
+                renamedFile.FileName = fileName;
+                renamedFile.LastScanned = now;
+                renamedFile.LastSeen = now;
+
+                seenFiles.Add(renamedFile.Id);
+
+                result.Renamed++;
+
+                continue;
+            }
+
+            var mix = CreateMixFromFile(filePath);
 
             var mixFile = new MixFile
             {
-                Mix = mix,
                 FileName = fileName,
-                FileSize = new FileInfo(filePath).Length,
-                FileHash = await CalculateHashAsync(filePath),
-                LastScanned = DateTime.UtcNow,
+                FileHash = hash,
+                LastScanned = now,
+                LastSeen = now,
+                Mix = mix,
             };
 
-            db.Mixes.Add(mix);
             db.MixFiles.Add(mixFile);
 
             result.NewMixes++;
+        }
 
-            logger.LogInformation("Imported mix: {Title} ({FileName})", mix.Title, fileName);
+        foreach (var file in existingFiles)
+        {
+            if (!seenFiles.Contains(file.Id) && file.LastSeen.HasValue)
+            {
+                result.Missing++;
+            }
         }
 
         await db.SaveChangesAsync();
@@ -62,36 +106,23 @@ public class MixScanner(
         return result;
     }
 
-    private static Mix CreateMix(string filePath)
+    private static Mix CreateMixFromFile(string filePath)
     {
-        using var file = TagLib.File.Create(filePath);
+        using var tagFile = TagLib.File.Create(filePath);
 
-        var title = file.Tag.Title?.Trim();
-        var artist = file.Tag.Performers?.FirstOrDefault()?.Trim();
+        var title = tagFile.Tag.Title;
 
-        string mixTitle;
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            title = Path.GetFileNameWithoutExtension(filePath);
+        }
 
-        if (!string.IsNullOrWhiteSpace(title) && !string.IsNullOrWhiteSpace(artist))
-        {
-            mixTitle = $"{artist} - {title}";
-        }
-        else if (!string.IsNullOrWhiteSpace(title))
-        {
-            mixTitle = title;
-        }
-        else if (!string.IsNullOrWhiteSpace(artist))
-        {
-            mixTitle = artist;
-        }
-        else
-        {
-            mixTitle = Path.GetFileNameWithoutExtension(filePath);
-        }
+        var description = string.Empty;
 
         return new Mix
         {
-            Title = mixTitle,
-            Description = string.Empty,
+            Title = title,
+            Description = description,
             CreatedAt = DateTime.UtcNow,
             ModifiedAt = DateTime.UtcNow,
         };
@@ -101,17 +132,10 @@ public class MixScanner(
     {
         await using var stream = File.OpenRead(filePath);
 
-        var hash = await SHA256.HashDataAsync(stream);
+        using var sha256 = SHA256.Create();
+
+        var hash = await sha256.ComputeHashAsync(stream);
 
         return Convert.ToHexString(hash);
     }
-}
-
-public class ScanResult
-{
-    public int FilesFound { get; set; }
-
-    public int NewMixes { get; set; }
-
-    public int AlreadyKnown { get; set; }
 }
