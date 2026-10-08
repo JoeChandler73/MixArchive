@@ -1,0 +1,15 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mix-archive
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/AppData/mixarchive.db
+      - Music__RootPath=/app/AppData/Music/
+      - Music__ArtworkPath=/app/AppData/Images/
+    volumes:
+      - ./src/MixArchive/AppData:/app/AppData
