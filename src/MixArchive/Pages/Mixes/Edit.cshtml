@@ -15,7 +15,7 @@
 
 <h1>Edit Mix</h1>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
 
     <input type="hidden" asp-for="Id" />
 
@@ -64,6 +64,39 @@
 
       <div class="form-text">
         Type a tag and press Enter.
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label asp-for="Artwork" class="form-label">
+        Artwork
+      </label>
+
+      @if (!string.IsNullOrWhiteSpace(Model.ArtworkFileName))
+      {
+        <div class="mb-3">
+          <img src="?handler=Artwork"
+            class="img-thumbnail"
+            style="max-width: 300px; max-height: 300px;"
+            alt="Current artwork" />
+        </div>
+
+        <div class="form-check mb-3">
+          <input asp-for="RemoveArtwork" class="form-check-input" />
+          <label asp-for="RemoveArtwork"class="form-check-label">
+            Remove artwork
+          </label>
+        </div>
+      }
+
+      <input asp-for="Artwork"
+        type="file"
+        class="form-control"
+        accept=".jpg,.jpeg,.png,.webp" />
+
+      <div class="form-text">
+        Optional. JPEG, PNG or WebP, maximum 5 MB.
+        Uploading a new image replaces the existing artwork.
       </div>
     </div>
 

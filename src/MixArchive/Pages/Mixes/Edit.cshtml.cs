@@ -6,7 +6,8 @@ using MixArchive.Services;
 
 namespace MixArchive.Pages.Mixes;
 
-public class EditModel(MixArchiveDbContext db, TagService tagService) : PageModel
+public class EditModel(MixArchiveDbContext db, TagService tagService, ArtworkService artworkService)
+    : PageModel
 {
     [BindProperty]
     public int Id { get; set; }
@@ -19,6 +20,14 @@ public class EditModel(MixArchiveDbContext db, TagService tagService) : PageMode
 
     [BindProperty]
     public string Tags { get; set; } = string.Empty;
+
+    [BindProperty]
+    public IFormFile? Artwork { get; set; }
+
+    public string? ArtworkFileName { get; set; }
+
+    [BindProperty]
+    public bool RemoveArtwork { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -34,6 +43,7 @@ public class EditModel(MixArchiveDbContext db, TagService tagService) : PageMode
         Id = mix.Id;
         Title = mix.Title;
         Description = mix.Description;
+        ArtworkFileName = mix.ArtworkFileName;
 
         Tags = string.Join(", ", mix.MixTags.Select(mt => mt.Tag.Name).OrderBy(name => name));
 
@@ -73,8 +83,74 @@ public class EditModel(MixArchiveDbContext db, TagService tagService) : PageMode
             mix.MixTags.Add(new Models.MixTag { MixId = mix.Id, TagId = tag.Id });
         }
 
+        if (RemoveArtwork && !string.IsNullOrWhiteSpace(mix.ArtworkFileName))
+        {
+            artworkService.Delete(mix.ArtworkFileName);
+
+            mix.ArtworkFileName = null;
+        }
+
+        if (Artwork is not null && Artwork.Length > 0)
+        {
+            if (Artwork.Length > 5 * 1024 * 1024)
+            {
+                ModelState.AddModelError(nameof(Artwork), "Artwork must be 5 MB or smaller.");
+
+                return Page();
+            }
+
+            var extension = Path.GetExtension(Artwork.FileName).ToLowerInvariant();
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                ModelState.AddModelError(nameof(Artwork), "Artwork must be JPEG, PNG or WebP.");
+
+                return Page();
+            }
+
+            var fileName = artworkService.GetFileName(mix.Id, extension);
+            var path = artworkService.GetFullPath(fileName);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+            await using var stream = new FileStream(
+                path,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None
+            );
+
+            await Artwork.CopyToAsync(stream);
+
+            mix.ArtworkFileName = fileName;
+        }
+
         await db.SaveChangesAsync();
 
         return RedirectToPage("/Mixes/Details", new { id = mix.Id });
+    }
+
+    public async Task<IActionResult> OnGetArtworkAsync(int id)
+    {
+        var mix = await db.Mixes.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+
+        if (mix?.ArtworkFileName == null)
+            return NotFound();
+
+        if (!artworkService.Exists(mix.ArtworkFileName))
+            return NotFound();
+
+        var path = artworkService.GetFullPath(mix.ArtworkFileName);
+
+        var contentType = Path.GetExtension(path).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream",
+        };
+
+        return PhysicalFile(path, contentType);
     }
 }

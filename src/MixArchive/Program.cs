@@ -16,6 +16,7 @@ builder.Services.AddDbContext<MixArchiveDbContext>(options =>
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<MixFileService>();
 builder.Services.AddScoped<MixScanner>();
+builder.Services.AddScoped<ArtworkService>();
 
 // Add services to the container.
 builder.Services.AddRazorPages();

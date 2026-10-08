@@ -14,5 +14,7 @@ public sealed class Mix
 
     public MixFile? File { get; set; }
 
+    public string? ArtworkFileName { get; set; }
+
     public ICollection<MixTag> MixTags { get; set; } = [];
 }

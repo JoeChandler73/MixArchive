@@ -15,6 +15,14 @@
 
     <h1>@Model.Mix.Title</h1>
 
+    @if (Model.Mix.ArtworkFileName != null)
+    {
+      <img src="?handler=Artwork"
+        class="img-fluid rounded"
+        style="max-width: 400px;"
+        alt="Artwork for @Model.Mix.Title" />
+    }
+
     @if (!string.IsNullOrWhiteSpace(Model.Mix.Description))
     {
         <p class="text-muted">
